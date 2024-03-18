@@ -22,7 +22,7 @@ enum SpinState {
 //uint8_t current_tool = 0;
 StoredState stored_state;
 RapidChange::RapidChange* rapid_change;
-float origin_mpos[2];
+// float origin_mpos[2];
 
 void spin_cw(int speed);
 void spin_ccw(int speed);
