@@ -54,7 +54,7 @@ void execute_linef(bool sync_after, const char* format, ...) {
 void rapid_to_tool_setter_xy() {
     float x_pos = rapid_change->get_touch_probe_pos(X_AXIS);
     float y_pos = rapid_change->get_touch_probe_pos(Y_AXIS);
-    execute_linef(true, "G53 G0 X%5.3f A%5.3f", x_pos, y_pos);
+    execute_linef(true, "G53 G0 X%5.3f Y%5.3f", x_pos, y_pos);
 }
 
 void rapid_to_pocket_xy(uint8_t tool_num) {
