@@ -350,3 +350,9 @@ void user_M30() {
         execute_linef(true, "M6 T0");
     }
 }
+
+
+// Turret Commands
+void send_command(uint8_t* bits) {
+    
+}
