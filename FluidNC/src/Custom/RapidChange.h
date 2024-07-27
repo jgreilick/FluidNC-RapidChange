@@ -60,6 +60,11 @@ namespace RapidChange {
             float _z_tool_recognition_zone_1;
             float _z_tool_recognition_zone_2;
             Pin _tool_recognition_pin;
+
+            // Magazine io
+            Pin _trigger_out;
+            Pin _signal_out;
+            Pin _signal_in;
             
             enum dustCoverAxis {
                 A_AXIS = 3,

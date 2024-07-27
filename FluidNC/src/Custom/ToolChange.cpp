@@ -1,5 +1,38 @@
 #include "ToolChange.h"
 
+// Turret commands
+uint8_t slot_1_command[8] = {0, 0, 0, 0, 1, 0, 0, 0};
+uint8_t slot_2_command[8] = {0, 0, 0, 0, 0, 1, 0, 0};
+uint8_t slot_3_command[8] = {0, 0, 0, 0, 1, 1, 0, 0};
+uint8_t slot_4_command[8] = {0, 0, 0, 0, 0, 0, 1, 0};
+uint8_t slot_5_command[8] = {0, 0, 0, 0, 1, 0, 1, 0};
+uint8_t slot_6_command[8] = {0, 0, 0, 0, 0, 1, 1, 0};
+uint8_t slot_7_command[8] = {0, 0, 0, 0, 1, 1, 1, 0};
+uint8_t slot_8_command[8] = {0, 0, 0, 0, 0, 0, 0, 1};
+uint8_t rotate_neg_1_command[8] = {1, 0, 0, 0, 1, 1, 0, 0};
+uint8_t rotate_neg_10_command[8] = {1, 0, 0, 0, 1, 0, 1, 0};
+uint8_t rotate_neg_100_command[8] = {1, 0, 0, 0, 1, 0, 0, 1};
+uint8_t rotate_pos_1_command[8] = {1, 0, 0, 0, 0, 1, 0, 0};
+uint8_t rotate_pos_10_command[8] = {1, 0, 0, 0, 0, 0, 1, 0};
+uint8_t rotate_pos_100_command[8] = {1, 0, 0, 0, 0, 0, 0, 1};
+uint8_t home_command[8] = {0, 1, 0, 0, 1, 1, 0, 0};
+uint8_t home_clear_command[8] = {0, 1, 0, 0, 0, 1, 0, 0};
+uint8_t home_set_command[8] = {0, 1, 0, 0, 1, 0, 0, 0};
+uint8_t cover_close_command[8] = {1, 1, 0, 0, 0, 0, 0, 0};
+uint8_t cover_open_command[8] = {1, 1, 0, 0, 1, 0, 0, 0};
+
+void send_command(uint8_t* bits) {
+    for (int i = 0; i < 8; i++) {
+        if (rapid_change->_signal_out.defined()) {
+            rapid_change->_signal_out.synchronousWrite(bits[i]);
+        }
+        if (rapid_change->_trigger_out.defined()) {
+            rapid_change->_trigger_out.synchronousWrite(true);
+            rapid_change->_trigger_out.synchronousWrite(false);
+        }
+    }
+}
+
 void user_select_tool(uint8_t new_tool) {
     //current_tool = new_tool;
     set_current_tool(new_tool);
@@ -349,10 +382,4 @@ void user_M30() {
     if (current_tool->get() != 0) {
         execute_linef(true, "M6 T0");
     }
-}
-
-
-// Turret Commands
-void send_command(uint8_t* bits) {
-    
 }

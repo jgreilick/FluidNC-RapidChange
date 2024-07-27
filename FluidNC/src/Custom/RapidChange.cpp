@@ -113,6 +113,9 @@ namespace RapidChange {
     void RapidChange::afterParse() {
         this->_dust_cover_pin.setAttr(Pin::Attr::Output);
         this->_tool_recognition_pin.setAttr(Pin::Attr::Input);
+        this->_signal_in.setAttr(Pin::Attr::Input);
+        this->_signal_out.setAttr(Pin::Attr::Output);
+        this->_trigger_out.setAttr(Pin::Attr::Output);
     }
 }
 
