@@ -108,6 +108,12 @@ namespace RapidChange {
         handler.item("z_tool_recognition_zone_1", _z_tool_recognition_zone_1);
         handler.item("z_tool_recognition_zone_2", _z_tool_recognition_zone_2);
         handler.item("tool_recognition_pin", _tool_recognition_pin);
+
+        // signals
+        handler.item("signal_in", _signal_in);
+        handler.item("signal_out", _signal_out);
+        handler.item("trigger_out", _trigger_out);
+        handler.item("trigger_in", _trigger_in);
     }
 
     void RapidChange::afterParse() {
@@ -116,6 +122,7 @@ namespace RapidChange {
         this->_signal_in.setAttr(Pin::Attr::Input);
         this->_signal_out.setAttr(Pin::Attr::Output);
         this->_trigger_out.setAttr(Pin::Attr::Output);
+        this->_trigger_in.setAttr(Pin::Attr::Input);
     }
 }
 

@@ -63,6 +63,7 @@ namespace RapidChange {
 
             // Magazine io
             Pin _trigger_out;
+            Pin _trigger_in;
             Pin _signal_out;
             Pin _signal_in;
             

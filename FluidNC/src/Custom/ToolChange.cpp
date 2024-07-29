@@ -1,6 +1,6 @@
 #include "ToolChange.h"
-
 // Turret commands
+uint8_t init_command[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint8_t slot_1_command[8] = {0, 0, 0, 0, 1, 0, 0, 0};
 uint8_t slot_2_command[8] = {0, 0, 0, 0, 0, 1, 0, 0};
 uint8_t slot_3_command[8] = {0, 0, 0, 0, 1, 1, 0, 0};
@@ -9,6 +9,16 @@ uint8_t slot_5_command[8] = {0, 0, 0, 0, 1, 0, 1, 0};
 uint8_t slot_6_command[8] = {0, 0, 0, 0, 0, 1, 1, 0};
 uint8_t slot_7_command[8] = {0, 0, 0, 0, 1, 1, 1, 0};
 uint8_t slot_8_command[8] = {0, 0, 0, 0, 0, 0, 0, 1};
+uint8_t* slot_commands[8] = {
+    slot_1_command,
+    slot_2_command,
+    slot_3_command,
+    slot_4_command,
+    slot_5_command,
+    slot_6_command,
+    slot_7_command,
+    slot_8_command,
+};
 uint8_t rotate_neg_1_command[8] = {1, 0, 0, 0, 1, 1, 0, 0};
 uint8_t rotate_neg_10_command[8] = {1, 0, 0, 0, 1, 0, 1, 0};
 uint8_t rotate_neg_100_command[8] = {1, 0, 0, 0, 1, 0, 0, 1};
@@ -20,17 +30,30 @@ uint8_t home_clear_command[8] = {0, 1, 0, 0, 0, 1, 0, 0};
 uint8_t home_set_command[8] = {0, 1, 0, 0, 1, 0, 0, 0};
 uint8_t cover_close_command[8] = {1, 1, 0, 0, 0, 0, 0, 0};
 uint8_t cover_open_command[8] = {1, 1, 0, 0, 1, 0, 0, 0};
+uint8_t ir_read_command[8] = {0, 0, 1, 0, 0, 0, 0, 0};
 
-void send_command(uint8_t* bits) {
+void send_byte(uint8_t* bits) {
+    log_info(rapid_change->_signal_out.name());
     for (int i = 0; i < 8; i++) {
         if (rapid_change->_signal_out.defined()) {
-            rapid_change->_signal_out.synchronousWrite(bits[i]);
+            bool state = bits[0] == 1;
+            rapid_change->_signal_out.synchronousWrite(state);
+            delay_us(100);
         }
         if (rapid_change->_trigger_out.defined()) {
             rapid_change->_trigger_out.synchronousWrite(true);
+            delay_us(100);
             rapid_change->_trigger_out.synchronousWrite(false);
+            delay_us(100);
         }
     }
+}
+
+void send_command(uint8_t* bits) {
+    send_byte(init_command);
+    delay_us(100);
+    send_byte(bits);
+    log_info("Sent command to turret");
 }
 
 void user_select_tool(uint8_t new_tool) {
@@ -39,29 +62,40 @@ void user_select_tool(uint8_t new_tool) {
 }
 
 void user_tool_change(uint8_t new_tool) {
-    if (current_tool->get() == new_tool) {
-        log_info("CURRENT TOOL SELECTED. TOOL CHANGE BYPASSED.");
-        return;
-    }
-
-    rapid_change = config->_rapidChange;
-
-    message_start();
-    protocol_buffer_synchronize(); 
-    record_program_state();
-    set_tool_change_state();
-    unload_tool();
-    load_tool(new_tool);
-    set_tlo();
-    open_dust_cover(false);
-
-    // if (current_tool->get() != 0) {
-    //     execute_linef(true, "G53 G0 G90 X%5.3f Y%5.3f", origin_mpos[0], origin_mpos[1]);
-    // }
-    
-    restore_program_state();
-        
+    log_info("tool change called");
+    // uint8_t responseData = dispatch_to_atc(new_tool);
+    // char debug[50];
+    // sprintf(debug, "Response Byte: %i", responseData);
+    // log_info(debug);
+    const char* message = "Hello";
+    send_message_to_atc(message);
+    log_info("message sent");
     rapid_change = nullptr;
+    // dispatch_to_atc(rapid_change->_signal_out, rapid_change->_signal_in, new_tool);
+    
+//     if (current_tool->get() == new_tool) {
+//         log_info("CURRENT TOOL SELECTED. TOOL CHANGE BYPASSED.");
+//         return;
+//     }
+
+//     rapid_change = config->_rapidChange;
+
+//     message_start();
+//     protocol_buffer_synchronize(); 
+//     record_program_state();
+//     set_tool_change_state();
+//     unload_tool();
+//     load_tool(new_tool);
+//     set_tlo();
+//     open_dust_cover(false);
+
+//     // if (current_tool->get() != 0) {
+//     //     execute_linef(true, "G53 G0 G90 X%5.3f Y%5.3f", origin_mpos[0], origin_mpos[1]);
+//     // }
+    
+//     restore_program_state();
+        
+//     rapid_change = nullptr;
 }
 
 void execute_linef(bool sync_after, const char* format, ...) {
@@ -86,14 +120,17 @@ void execute_linef(bool sync_after, const char* format, ...) {
 
 void rapid_to_tool_setter_xy() {
     float x_pos = rapid_change->get_touch_probe_pos(X_AXIS);
-    float y_pos = rapid_change->get_touch_probe_pos(Y_AXIS);
-    execute_linef(true, "G53 G0 X%5.3f Y%5.3f", x_pos, y_pos);
+    // float y_pos = rapid_change->get_touch_probe_pos(Y_AXIS);
+    // execute_linef(true, "G53 G0 X%5.3f Y%5.3f", x_pos, y_pos);
+    execute_linef(true, "G53 G0 X%5.3f", x_pos);
 }
 
 void rapid_to_pocket_xy(uint8_t tool_num) {
+    send_command(slot_commands[tool_num - 1]);
     float x_pos = rapid_change->get_tool_pos(X_AXIS, tool_num);
-    float y_pos = rapid_change->get_tool_pos(Y_AXIS, tool_num);
-    execute_linef(true, "G53 G0 X%5.3f A%5.3f", x_pos, y_pos);
+    // float y_pos = rapid_change->get_tool_pos(Y_AXIS, tool_num);
+    execute_linef(true, "G53 G0 X%5.3f", x_pos);
+    // execute_linef(true, "G53 G0 X%5.3f A%5.3f", x_pos, y_pos);
 }
 
 void rapid_to_z(float position) {
@@ -113,12 +150,18 @@ void message_start() {
 }
 
 void open_dust_cover(bool open) {
+    // if (!rapid_change->_dust_cover_enabled) {
+    //     return;
+    // } else if (rapid_change->_dust_cover_use_output) {
+    //     open_dust_cover_output(open);
+    // } else {
+    //     open_dust_cover_axis(open);
+    // }
     if (!rapid_change->_dust_cover_enabled) {
         return;
-    } else if (rapid_change->_dust_cover_use_output) {
-        open_dust_cover_output(open);
     } else {
-        open_dust_cover_axis(open);
+        uint8_t* command = open ? cover_open_command : cover_close_command;
+        send_command(command);
     }
 }
 
@@ -183,6 +226,7 @@ void unload_tool() {
     // if we don't have a tool we're done
     if (current_tool->get() == 0) {
         open_dust_cover(true);
+        
         return;
     }
 
@@ -192,6 +236,7 @@ void unload_tool() {
         // Perform first attempt
         rapid_to_pocket_xy(current_tool->get());
         open_dust_cover(true);
+        
         execute_linef(false, "G4 P0.5");
         rapid_to_z(rapid_change->_z_engage + 23);
         spin_ccw(rapid_change->_unload_rpm);
@@ -233,6 +278,7 @@ void unload_tool() {
     // If the tool doesn't have a pocket, let's pause for manual removal
     } else {  
         open_dust_cover(true);
+        
         log_info("CURRENT TOOL DOES NOT HAVE AN ASSIGNED POCKET.");
         log_info("PLEASE UNLOAD THE TOOL MANUALLY AND CYCLE START TO CONTINUE.");
         execute_linef(true, "M0");
@@ -374,7 +420,10 @@ Error set_current_tool(uint8_t tool_num) {
 }
 
 bool spindle_has_tool() {
-    return !rapid_change->_tool_recognition_pin.read();
+    // return !rapid_change->_tool_recognition_pin.read();
+    send_command(ir_read_command);
+    return !rapid_change->_signal_in.read();
+    
 }
 
 void user_M30() {
