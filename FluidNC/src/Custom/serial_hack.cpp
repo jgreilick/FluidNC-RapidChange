@@ -26,6 +26,10 @@ void receive_message_from_atc(char* buffer, Pin& trigger_in, Pin& signal_in) {
             buffer[byteCount] = dataIn;
             byteCount++;
         }
+    }
+
+    if (hasError) {
+        buffer[0] = 0xff;
     } 
 }
 

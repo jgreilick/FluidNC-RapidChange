@@ -1,60 +1,7 @@
 #include "ToolChange.h"
-// Turret commands
-uint8_t init_command[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-uint8_t slot_1_command[8] = {0, 0, 0, 0, 1, 0, 0, 0};
-uint8_t slot_2_command[8] = {0, 0, 0, 0, 0, 1, 0, 0};
-uint8_t slot_3_command[8] = {0, 0, 0, 0, 1, 1, 0, 0};
-uint8_t slot_4_command[8] = {0, 0, 0, 0, 0, 0, 1, 0};
-uint8_t slot_5_command[8] = {0, 0, 0, 0, 1, 0, 1, 0};
-uint8_t slot_6_command[8] = {0, 0, 0, 0, 0, 1, 1, 0};
-uint8_t slot_7_command[8] = {0, 0, 0, 0, 1, 1, 1, 0};
-uint8_t slot_8_command[8] = {0, 0, 0, 0, 0, 0, 0, 1};
-uint8_t* slot_commands[8] = {
-    slot_1_command,
-    slot_2_command,
-    slot_3_command,
-    slot_4_command,
-    slot_5_command,
-    slot_6_command,
-    slot_7_command,
-    slot_8_command,
-};
-uint8_t rotate_neg_1_command[8] = {1, 0, 0, 0, 1, 1, 0, 0};
-uint8_t rotate_neg_10_command[8] = {1, 0, 0, 0, 1, 0, 1, 0};
-uint8_t rotate_neg_100_command[8] = {1, 0, 0, 0, 1, 0, 0, 1};
-uint8_t rotate_pos_1_command[8] = {1, 0, 0, 0, 0, 1, 0, 0};
-uint8_t rotate_pos_10_command[8] = {1, 0, 0, 0, 0, 0, 1, 0};
-uint8_t rotate_pos_100_command[8] = {1, 0, 0, 0, 0, 0, 0, 1};
-uint8_t home_command[8] = {0, 1, 0, 0, 1, 1, 0, 0};
-uint8_t home_clear_command[8] = {0, 1, 0, 0, 0, 1, 0, 0};
-uint8_t home_set_command[8] = {0, 1, 0, 0, 1, 0, 0, 0};
-uint8_t cover_close_command[8] = {1, 1, 0, 0, 0, 0, 0, 0};
-uint8_t cover_open_command[8] = {1, 1, 0, 0, 1, 0, 0, 0};
-uint8_t ir_read_command[8] = {0, 0, 1, 0, 0, 0, 0, 0};
 
-void send_byte(uint8_t* bits) {
-    log_info(rapid_change->_signal_out.name());
-    for (int i = 0; i < 8; i++) {
-        if (rapid_change->_signal_out.defined()) {
-            bool state = bits[0] == 1;
-            rapid_change->_signal_out.synchronousWrite(state);
-            delay_us(100);
-        }
-        if (rapid_change->_trigger_out.defined()) {
-            rapid_change->_trigger_out.synchronousWrite(true);
-            delay_us(100);
-            rapid_change->_trigger_out.synchronousWrite(false);
-            delay_us(100);
-        }
-    }
-}
-
-void send_command(uint8_t* bits) {
-    send_byte(init_command);
-    delay_us(100);
-    send_byte(bits);
-    log_info("Sent command to turret");
-}
+#define SYNC_AFTER    0x21
+#define EXECUTE_GCODE 0x24
 
 void user_select_tool(uint8_t new_tool) {
     //current_tool = new_tool;
@@ -62,13 +9,48 @@ void user_select_tool(uint8_t new_tool) {
 }
 
 void user_tool_change(uint8_t new_tool) {
-    log_info("tool change called");
-    const char* message = "Hello";
-    char received[50];
-    send_message_to_atc(message, received);
-    log_info("message sent");
-    log_info(received);
-    rapid_change = nullptr;
+    // log_info("tool change called");
+    // const char* message = "Hello";
+    // char received[50];
+    // send_message_to_atc(message, received);
+    // log_info("message sent");
+    // log_info(received);
+    // rapid_change = nullptr;
+
+    char bufferIn[50];
+    char bufferOut[50];
+    sprintf(bufferOut, "T%i", new_tool);
+    send_message_to_atc(bufferOut, bufferIn);
+
+    while (bufferIn[0] != 0xff && bufferIn[0] != '!') {
+        if (bufferIn[0] == EXECUTE_GCODE && bufferIn[1] == SYNC_AFTER) {
+            for (int i = 2; i <= strlen(bufferIn); i++) {
+                bufferOut[i-2] = bufferIn[i];
+            }
+            int removedLength = strlen(bufferOut);
+            execute_linef(true, bufferOut);
+            sprintf(bufferOut, "&");
+            delayMicroseconds(5000);
+            send_message_to_atc(bufferOut, bufferIn);
+        } else if (bufferIn[0] == EXECUTE_GCODE) {
+            for (int i = 1; i <= strlen(bufferIn); i++) {
+                bufferOut[i-1] = bufferIn[i];
+            }
+            int removedLength = strlen(bufferOut);
+            execute_linef(false, bufferOut);
+            sprintf(bufferOut, "&");
+            delayMicroseconds(5000);
+            send_message_to_atc(bufferOut, bufferIn);
+        }
+    }
+
+    if (bufferIn[0] == 0xff) {
+        log_info("Magazine communication error!");
+    } else if (bufferIn[0] == '!') {
+        log_info(bufferIn);
+    } else {
+        log_info("Something very unexpected happened");
+    }
     // dispatch_to_atc(rapid_change->_signal_out, rapid_change->_signal_in, new_tool);
     
 //     if (current_tool->get() == new_tool) {
@@ -124,7 +106,7 @@ void rapid_to_tool_setter_xy() {
 }
 
 void rapid_to_pocket_xy(uint8_t tool_num) {
-    send_command(slot_commands[tool_num - 1]);
+    //send_command(slot_commands[tool_num - 1]);
     float x_pos = rapid_change->get_tool_pos(X_AXIS, tool_num);
     // float y_pos = rapid_change->get_tool_pos(Y_AXIS, tool_num);
     execute_linef(true, "G53 G0 X%5.3f", x_pos);
@@ -158,8 +140,8 @@ void open_dust_cover(bool open) {
     if (!rapid_change->_dust_cover_enabled) {
         return;
     } else {
-        uint8_t* command = open ? cover_open_command : cover_close_command;
-        send_command(command);
+        //uint8_t* command = open ? cover_open_command : cover_close_command;
+        // send_command(command);
     }
 }
 
@@ -419,7 +401,7 @@ Error set_current_tool(uint8_t tool_num) {
 
 bool spindle_has_tool() {
     // return !rapid_change->_tool_recognition_pin.read();
-    send_command(ir_read_command);
+    // send_command(ir_read_command);
     return !rapid_change->_signal_in.read();
     
 }
