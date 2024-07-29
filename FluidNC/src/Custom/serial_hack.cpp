@@ -8,15 +8,36 @@ uint8_t listen_for_response(Pin& rx_pin) {
     return 0;
 }
 
+void receive_message_from_atc(char* buffer, Pin& trigger_in, Pin& signal_in) {
+    uint8_t byteCount = 0;
+    bool messageReceived = false;
+    bool hasError = false;
+
+    while (!messageReceived && !hasError) {
+        uint8_t dataIn = receive_byte(trigger_in, signal_in);
+        hasError = dataIn == 0xff;
+        bool isStopByte = bitRead(dataIn, 7);
+        if (!hasError && isStopByte) {
+            messageReceived = true;
+            bitClear(dataIn, 7);
+            buffer[byteCount] = dataIn;
+            buffer[byteCount + 1] = 0x00;
+        } else if (!hasError && !isStopByte) {
+            buffer[byteCount] = dataIn;
+            byteCount++;
+        }
+    } 
+}
+
 void dispatch_byte(Pin& triggerPin, Pin& bitPin, uint8_t byte) {
   triggerPin.synchronousWrite(false);
-  delayMicroseconds(100);
+  delayMicroseconds(300);
   for (uint8_t i = 0; i < 8; i++) {
       bitPin.synchronousWrite(bitRead(byte, i));
       triggerPin.synchronousWrite(true);
-      delayMicroseconds(100);
+      delayMicroseconds(300);
       triggerPin.synchronousWrite(false);
-      delayMicroseconds(100);
+      delayMicroseconds(300);
     }
 }
 
@@ -27,7 +48,7 @@ uint8_t receive_byte(Pin& triggerPin, Pin& bitPin) {
     uint64_t timeout = millis() + 500;
     bool timedOut = false;
     bool dataReceived = false;
-    bool wasTriggered = false;
+    bool wasTriggered = triggerPin.read();
 
     uint64_t attempts = 0;
 
@@ -46,10 +67,6 @@ uint8_t receive_byte(Pin& triggerPin, Pin& bitPin) {
             }
             bitIn++;
             timeout = millis() + 500;
-            sprintf(debug, "Timeout %i", timeout);
-            log_info(debug);
-            sprintf(debug, "Time %i", millis());
-            log_info(debug);
         }
         wasTriggered = isTriggered;
         if (timeout < millis()) {
@@ -60,8 +77,6 @@ uint8_t receive_byte(Pin& triggerPin, Pin& bitPin) {
 
     if (timedOut) {
         log_info("Timed out");
-        sprintf(debug, "Attempts %i", attempts);
-        log_info(debug);
         return 0xff;
     }
 
@@ -73,19 +88,21 @@ uint8_t dispatch_to_atc(uint8_t data) {
     RapidChange::RapidChange* rapidChange = config->_rapidChange;
     dispatch_byte(rapidChange->_trigger_out, rapidChange->_signal_out, data);
     byte responseData = receive_byte(rapidChange->_trigger_in, rapidChange->_signal_in);
-
     
     return responseData;
 }
 
-void send_message_to_atc(const char* message) {
+void send_message_to_atc(const char* message, char* buffer) {
     RapidChange::RapidChange* rapidChange = config->_rapidChange;
     int length = strlen(message);
     for (int i = 0; i < length - 1; i++) {
         dispatch_byte(rapidChange->_trigger_out, rapidChange->_signal_out, message[i]);
+        delayMicroseconds(300);
     }
     char lastChar = message[length - 1];
     bitSet(lastChar, 7);
     dispatch_byte(rapidChange->_trigger_out, rapidChange->_signal_out, lastChar);
+    delayMicroseconds(300);
+    receive_message_from_atc(buffer, rapidChange->_trigger_in, rapidChange->_signal_in);
     rapidChange = nullptr;
 }

@@ -63,13 +63,11 @@ void user_select_tool(uint8_t new_tool) {
 
 void user_tool_change(uint8_t new_tool) {
     log_info("tool change called");
-    // uint8_t responseData = dispatch_to_atc(new_tool);
-    // char debug[50];
-    // sprintf(debug, "Response Byte: %i", responseData);
-    // log_info(debug);
     const char* message = "Hello";
-    send_message_to_atc(message);
+    char received[50];
+    send_message_to_atc(message, received);
     log_info("message sent");
+    log_info(received);
     rapid_change = nullptr;
     // dispatch_to_atc(rapid_change->_signal_out, rapid_change->_signal_in, new_tool);
     
