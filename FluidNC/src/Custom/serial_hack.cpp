@@ -49,7 +49,7 @@ uint8_t receive_byte(Pin& triggerPin, Pin& bitPin) {
     char debug[50];
     uint8_t dataIn = 0x00;
     uint8_t bitIn = 0;
-    uint64_t timeout = millis() + 500;
+    uint64_t timeout = millis() + 5000;
     bool timedOut = false;
     bool dataReceived = false;
     bool wasTriggered = triggerPin.read();
@@ -106,7 +106,7 @@ void send_message_to_atc(const char* message, char* buffer) {
     char lastChar = message[length - 1];
     bitSet(lastChar, 7);
     dispatch_byte(rapidChange->_trigger_out, rapidChange->_signal_out, lastChar);
-    delayMicroseconds(300);
+    delayMicroseconds(1000);
     receive_message_from_atc(buffer, rapidChange->_trigger_in, rapidChange->_signal_in);
     rapidChange = nullptr;
 }

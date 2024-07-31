@@ -122,7 +122,10 @@ namespace RapidChange {
         this->_signal_in.setAttr(Pin::Attr::Input);
         this->_signal_out.setAttr(Pin::Attr::Output);
         this->_trigger_out.setAttr(Pin::Attr::Output);
+        this->_trigger_out.setAttr(Pin::Attr::ActiveLow);
         this->_trigger_in.setAttr(Pin::Attr::Input);
+        this->_trigger_in.setAttr(Pin::Attr::ActiveLow);
+        this->_trigger_out.synchronousWrite(false);
     }
 }
 
