@@ -3,49 +3,12 @@
 #define SYNC_AFTER    0x21
 #define EXECUTE_GCODE 0x24
 
-void user_select_tool(uint8_t new_tool) {
-    //current_tool = new_tool;
-    set_current_tool(new_tool);
-}
-
-void machine_init() {
-    log_info("Machine init hook called");
+void process_atc_commands(char* initialRequest) {
     rapid_change = config->_rapidChange;
-    rapid_change->_trigger_out.synchronousWrite(false
-    );
-}
-
-void user_tool_change(uint8_t new_tool) {
-    // log_info("tool change called");
-    // const char* message = "Hello";
-    // char received[50];
-    // send_message_to_atc(message, received);
-    // log_info("message sent");
-    // log_info(received);
-    // rapid_change = nullptr;
-    rapid_change = config->_rapidChange;
-    // Input testing
-    // char debug[50];
-    // for (int i = 0; i < new_tool; i++) {
-    //     sprintf(debug, "Trigger In: %i", rapid_change->_trigger_in.read());
-    //     log_info(debug);
-    //     delay_ms(10);
-    // } 
-
-
     char bufferIn[50];
     char bufferOut[50];
 
-    sprintf(bufferOut, "Trigger Out: %s", rapid_change->_trigger_out.name());
-    log_info(bufferOut);
-    sprintf(bufferOut, "Trigger In: %s", rapid_change->_trigger_in.name());
-    log_info(bufferOut);
-    sprintf(bufferOut, "Signal Out: %s", rapid_change->_signal_out.name());
-    log_info(bufferOut);
-    sprintf(bufferOut, "Signal In: %s", rapid_change->_signal_in.name());
-    log_info(bufferOut);
-
-    sprintf(bufferOut, "T%i", new_tool);
+    sprintf(bufferOut, initialRequest);
     send_message_to_atc(bufferOut, bufferIn);
 
     while (bufferIn[0] != 0xff && bufferIn[0] != '!') {
@@ -79,6 +42,39 @@ void user_tool_change(uint8_t new_tool) {
     }
 
     rapid_change = nullptr;
+}
+
+void user_select_tool(uint8_t new_tool) {
+    //current_tool = new_tool;
+    set_current_tool(new_tool);
+}
+
+void machine_init() {
+    log_info("Machine init hook called");
+    rapid_change = config->_rapidChange;
+    rapid_change->_trigger_out.synchronousWrite(false
+    );
+}
+
+void user_turret_control(uint8_t mode, int steps) {
+    char request[50];
+    sprintf(request, "H%i%i", mode, steps);
+    process_atc_commands(request);
+}
+
+void user_tool_change(uint8_t new_tool) {
+    char request[50];
+    sprintf(request, "T%i", new_tool);
+    process_atc_commands(request);
+
+    // log_info("tool change called");
+    // const char* message = "Hello";
+    // char received[50];
+    // send_message_to_atc(message, received);
+    // log_info("message sent");
+    // log_info(received);
+    // rapid_change = nullptr;
+    
     // dispatch_to_atc(rapid_change->_signal_out, rapid_change->_signal_in, new_tool);
     
 //     if (current_tool->get() == new_tool) {

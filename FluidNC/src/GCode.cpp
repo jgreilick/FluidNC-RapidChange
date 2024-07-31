@@ -582,6 +582,10 @@ Error gc_execute_line(char* line, Channel& channel) {
                         gc_block.modal.io_control = IoControl::SetAnalogImmediate;
                         mg_word_bit               = ModalGroup::MM10;
                         break;
+                    case 69:
+                        gc_block.modal.tool_change = ToolChange::Home;
+                        mg_word_bit = ModalGroup::MM6;
+                        break;
                     default:
                         FAIL(Error::GcodeUnsupportedCommand);  // [Unsupported M command]
                 }
@@ -1415,6 +1419,8 @@ Error gc_execute_line(char* line, Channel& channel) {
         user_tool_change(gc_state.tool);
     } else if (gc_block.modal.tool_change == ToolChange::Select) {
         user_select_tool(gc_state.tool);
+    } else if (gc_block.modal.tool_change == ToolChange::Home) {
+        user_turret_control(gc_block.values.q, gc_block.values.s);
     }
     // [7. Spindle control ]:
     if (gc_state.modal.spindle != gc_block.modal.spindle) {
@@ -1712,3 +1718,5 @@ void WEAK_LINK user_tool_change(uint8_t new_tool) {
 }
 
 void WEAK_LINK user_select_tool(uint8_t new_tool) {}
+
+void WEAK_LINK user_turret_control(uint8_t mode, int steps) {}

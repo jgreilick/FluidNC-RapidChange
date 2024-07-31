@@ -170,6 +170,7 @@ enum class ToolChange : uint8_t {
     Enable  = 1,
     // RapidChange addition
     Select = 2,
+    Home = 3,
 };
 
 // Modal Group G12: Active work coordinate system
