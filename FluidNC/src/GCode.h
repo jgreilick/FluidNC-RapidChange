@@ -325,3 +325,5 @@ void user_m30();
 
 // RapidChange addition
 void user_select_tool(uint8_t new_tool);
+
+void user_turret_control(uint8_t mode, int steps);
