@@ -1420,7 +1420,7 @@ Error gc_execute_line(char* line, Channel& channel) {
     } else if (gc_block.modal.tool_change == ToolChange::Select) {
         user_select_tool(gc_state.tool);
     } else if (gc_block.modal.tool_change == ToolChange::Home) {
-        user_turret_control(gc_block.values.q, gc_block.values.s);
+        user_turret_control(gc_block.values.q, gc_block.values.r);
     }
     // [7. Spindle control ]:
     if (gc_state.modal.spindle != gc_block.modal.spindle) {

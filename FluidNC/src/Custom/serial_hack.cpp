@@ -61,8 +61,8 @@ uint8_t receive_byte(Pin& triggerPin, Pin& bitPin) {
         bool isTriggered = triggerPin.read();
         bool bitState = bitPin.read();
         if (isTriggered && !wasTriggered) {
-            sprintf(debug, "Bit %i, Value %i", bitIn, bitState);
-            log_info(debug);
+            // sprintf(debug, "Bit %i, Value %i", bitIn, bitState);
+            // log_info(debug);
             if (bitState) {
                 bitSet(dataIn, bitIn);
             }
@@ -76,10 +76,9 @@ uint8_t receive_byte(Pin& triggerPin, Pin& bitPin) {
         if (timeout < millis()) {
             timedOut = true;
         }
-        
     }
 
-    if (timedOut) {
+    if (!dataReceived && timedOut) {
         log_info("Timed out");
         return 0xff;
     }

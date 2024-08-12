@@ -2,9 +2,10 @@
 
 #define SYNC_AFTER    0x21
 #define EXECUTE_GCODE 0x24
+#define POLL_FOR_MS   'P'
+#define MSG           'M'
 
-void process_atc_commands(char* initialRequest) {
-    rapid_change = config->_rapidChange;
+bool process_atc_commands(char* initialRequest) {
     char bufferIn[50];
     char bufferOut[50];
 
@@ -19,7 +20,7 @@ void process_atc_commands(char* initialRequest) {
             int removedLength = strlen(bufferOut);
             execute_linef(true, bufferOut);
             sprintf(bufferOut, "&");
-            delayMicroseconds(5000);
+            delay_ms(6);
             send_message_to_atc(bufferOut, bufferIn);
         } else if (bufferIn[0] == EXECUTE_GCODE) {
             for (int i = 1; i <= strlen(bufferIn); i++) {
@@ -28,20 +29,46 @@ void process_atc_commands(char* initialRequest) {
             int removedLength = strlen(bufferOut);
             execute_linef(false, bufferOut);
             sprintf(bufferOut, "&");
-            delayMicroseconds(5000);
+            delay_ms(6);
+            send_message_to_atc(bufferOut, bufferIn);
+        } else if (bufferIn[0] == POLL_FOR_MS) {
+            for (int i = 1; i <= strlen(bufferIn); i++) {
+                bufferOut[i-1] = bufferIn[i];
+            }
+            uint16_t poll_ms = atoi(bufferOut);
+            uint16_t poll_count = 0;
+            sprintf(bufferOut, "?");
+            send_message_to_atc(bufferOut, bufferIn);
+            while ((poll_count < (poll_ms / 15)) && bufferIn[0] != '&') {
+                log_info(bufferIn);
+                delay_ms(6);
+                send_message_to_atc(bufferOut, bufferIn);
+                poll_count++;
+            }
+            sprintf(bufferOut, "&");
+            delay_ms(6);
+            send_message_to_atc(bufferOut, bufferIn); 
+        } else if (bufferIn[0] == MSG) {
+            for (int i = 1; i <= strlen(bufferIn); i++) {
+                bufferOut[i-1] = bufferIn[i];
+            }
+            log_info(bufferOut);
+            sprintf(bufferOut, "&");
+            delay_ms(6);
             send_message_to_atc(bufferOut, bufferIn);
         }
     }
 
     if (bufferIn[0] == 0xff) {
         log_info("Magazine communication error!");
+        return false;
     } else if (bufferIn[0] == '!') {
         log_info(bufferIn);
+        return true;
     } else {
         log_info("Something very unexpected happened");
+        return false;
     }
-
-    rapid_change = nullptr;
 }
 
 void user_select_tool(uint8_t new_tool) {
@@ -63,10 +90,17 @@ void user_turret_control(uint8_t mode, int steps) {
 }
 
 void user_tool_change(uint8_t new_tool) {
+    rapid_change = config->_rapidChange;
+    protocol_buffer_synchronize(); 
+
     char request[50];
     sprintf(request, "T%i", new_tool);
-    process_atc_commands(request);
+    bool success = process_atc_commands(request);
 
+    if (success && new_tool > 0 && new_tool <= 8) {
+        set_tlo();
+    }
+    rapid_change = nullptr;
     // log_info("tool change called");
     // const char* message = "Hello";
     // char received[50];
