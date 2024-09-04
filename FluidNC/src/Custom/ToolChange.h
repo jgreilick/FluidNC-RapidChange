@@ -25,7 +25,6 @@ StoredState stored_state;
 RapidChange::RapidChange* rapid_change;
 // float origin_mpos[2];
 
-void send_command(uint8_t* bits);
 void spin_cw(int speed);
 void spin_ccw(int speed);
 void spin_stop();
